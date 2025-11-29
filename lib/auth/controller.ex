@@ -1,0 +1,90 @@
+defmodule Auth.Controller do
+  use Phoenix.Controller, formats: [:html, :json]
+
+  import Plug.Conn
+
+  def sign_in(conn, _params) do
+    default = Auth.WorkOS.default_path()
+    return_to = get_session(conn, :user_return_to, default)
+    {:ok, url} = Auth.WorkOS.get_authorization_url(state: Base.encode64(return_to))
+
+    redirect(conn, external: url)
+  end
+
+  def sign_out(conn, _params) do
+    case get_session(conn, :access_token) do
+      nil ->
+        # No session, just redirect to home
+        redirect(conn, to: Auth.WorkOS.default_path())
+
+      access_token ->
+        # Try to get session_id for WorkOS logout, but don't crash if it fails
+        redirect_url =
+          case Auth.Token.verify(access_token) do
+            {:ok, %{"sid" => session_id}} ->
+              {:ok, url} = Auth.WorkOS.get_logout_url(session_id)
+              url
+
+            _ ->
+              Auth.WorkOS.default_path()
+          end
+
+        delete_csrf_token()
+
+        conn
+        |> configure_session(renew: true)
+        |> clear_session()
+        |> redirect(external: redirect_url)
+    end
+  end
+
+  def sign_up(conn, _params) do
+    default = Auth.WorkOS.default_path()
+    return_to = get_session(conn, :user_return_to, default)
+
+    {:ok, url} =
+      Auth.WorkOS.get_authorization_url(screen_hint: "sign-up", state: Base.encode64(return_to))
+
+    redirect(conn, external: url)
+  end
+
+  def callback(conn, %{"error" => error, "error_description" => error_description}) do
+    render(conn, :error, error: error, error_description: error_description)
+  end
+
+  def callback(conn, %{"code" => code, "state" => state}) do
+    case Auth.WorkOS.authenticate_with_code(conn, code) do
+      {:ok, response} ->
+        conn
+        |> authenticate(response)
+        |> redirect(to: decode_return_path(state))
+
+      {:error, reason} ->
+        render(conn, :error, error: "authentication_failed", error_description: inspect(reason))
+    end
+  end
+
+  def callback(conn, %{"code" => code}),
+    do: callback(conn, %{"code" => code, "state" => Base.encode64(Auth.WorkOS.default_path())})
+
+  defp authenticate(conn, %{"access_token" => access_token, "refresh_token" => refresh_token}) do
+    conn
+    |> put_session(:access_token, access_token)
+    |> put_session(:refresh_token, refresh_token)
+  end
+
+  # Safely decode and validate the return path to prevent open redirect attacks
+  defp decode_return_path(state) do
+    default = Auth.WorkOS.default_path()
+
+    case Base.decode64(state) do
+      {:ok, path} -> validate_relative_path(path, default)
+      :error -> default
+    end
+  end
+
+  # Ensure it's not a protocol-relative URL like //evil.com
+  defp validate_relative_path("//" <> _rest, default), do: default
+  defp validate_relative_path("/" <> _rest = path, _default), do: path
+  defp validate_relative_path(_, default), do: default
+end
