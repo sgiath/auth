@@ -8,15 +8,16 @@ defmodule Auth.WorkOS do
   @api_base_url "https://api.workos.com"
 
   def get_authorization_url(opts \\ []) do
-    query = [
-      provider: "authkit",
-      response_type: "code",
-      client_id: client_id(),
-      redirect_uri: callback_url(),
-      screen_hint: Keyword.get(opts, :screen_hint, "sign-in"),
-      state: Keyword.get(opts, :state, "")
-    ]
-    |> dbg()
+    query =
+      opts
+      |> Keyword.put_new(:screen_hint, "sign-in")
+      |> Keyword.put_new(:state, "")
+      |> Keyword.merge(
+        provider: "authkit",
+        response_type: "code",
+        client_id: client_id(),
+        redirect_uri: callback_url()
+      )
 
     {:ok, "#{@api_base_url}/user_management/authorize?#{URI.encode_query(query)}"}
   end

@@ -29,4 +29,3 @@ defmodule Auth.Profile do
   """
   @callback load_profile(user :: map()) :: any()
 end
-

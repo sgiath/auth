@@ -1,7 +1,7 @@
 defmodule Auth.Token do
   use Joken.Config
 
-  add_hook JokenJwks, strategy: Auth.Token.Strategy
+  add_hook(JokenJwks, strategy: Auth.Token.Strategy)
 
   @impl Joken.Config
   def token_config do
@@ -18,7 +18,7 @@ defmodule Auth.Token.Strategy do
   def init_opts(opts) do
     base_url = Auth.WorkOS.base_url()
     client_id = Auth.WorkOS.client_id()
-    
+
     Keyword.merge(opts, jwks_url: "#{base_url}/sso/jwks/#{client_id}")
   end
 end
