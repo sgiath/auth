@@ -24,7 +24,6 @@ defmodule SgiathAuth.WorkOS do
         client_id: client_id(),
         redirect_uri: callback_url()
       )
-      |> dbg()
 
     {:ok, "#{@api_base_url}/user_management/authorize?#{URI.encode_query(query)}"}
   end
