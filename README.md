@@ -141,7 +141,7 @@ defmodule MyApp.Profile do
     |> where(user_id: ^user_id)
     |> MyApp.Repo.all()
     |> case do
-      [] -> 
+      [] ->
         # does not have a profile, create one automatically or return nil to deal with it later
         nil
 
@@ -165,10 +165,36 @@ config :sgiath_auth, profile_module: MyApp.Profile
 
 The profile will be available in `conn.assigns.current_scope.profile` and `socket.assigns.current_scope.profile`.
 
+### Optional: Admin Loading
+
+If your application supports admin accounts, you can implement the optional `load_admin/1` callback to load admin information:
+
+```elixir
+defmodule MyApp.Profile do
+  @behaviour SgiathAuth.Profile
+
+  @impl SgiathAuth.Profile
+  def load_profile(%{"id" => user_id}) do
+    MyApp.Repo.get_by(MyApp.User, workos_id: user_id)
+  end
+
+  @impl SgiathAuth.Profile
+  def load_admin(%{"id" => user_id}) do
+    # Load admin user data
+    MyApp.Repo.get_by(MyApp.Admin, workos_id: user_id)
+  end
+
+  def load_admin(_user), do: nil
+end
+```
+
+The admin data will be available in `conn.assigns.current_scope.admin` and `socket.assigns.current_scope.admin`. This allows you to authenticate admin users and allow for admin-specific functionality.
+
 ## SgiathAuth.Scope
 
 The `SgiathAuth.Scope` struct contains:
 
 - `user` - The WorkOS user map
 - `profile` - Application-specific profile data (if `profile_module` is configured)
-- `admin` - The admin email when using impersonation (from JWT `act.sub` claim)
+- `admin` - Admin data when using impersonation (populated via optional `load_admin/1` callback)
+- `role` - The user's role (default: `"member"`)

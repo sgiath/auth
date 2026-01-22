@@ -28,4 +28,18 @@ defmodule SgiathAuth.Profile do
   stored in `SgiathAuth.Scope.profile`. Return `nil` if no profile is found.
   """
   @callback load_profile(user :: map()) :: any()
+
+  @doc """
+  Optional callback to load admin data
+
+  Receives the WorkOS user map and should return admin data to be stored
+  in `SgiathAuth.Scope.admin`. Typically used to extract and load admin
+  information from the JWT `act.sub` claim when an admin is impersonating a user or load admin
+  data when regular users can also be admins.
+
+  Return `nil` if no admin is impersonating or if the callback is not needed.
+  """
+  @callback load_admin(user :: map()) :: any()
+
+  @optional_callbacks load_admin: 1
 end

@@ -5,10 +5,11 @@ defmodule SgiathAuth.Scope do
 
   defstruct user: nil, profile: nil, admin: nil, role: nil
 
-  def for_user(user, role \\ "member", admin \\ nil)
+  def for_user(user, role \\ "member")
 
-  def for_user(%{} = user, role, admin) do
+  def for_user(%{} = user, role) do
     profile = load_profile(user)
+    admin = load_admin(user)
     %__MODULE__{user: user, profile: profile, role: role, admin: admin}
   end
 
@@ -18,6 +19,17 @@ defmodule SgiathAuth.Scope do
     case Application.get_env(:sgiath_auth, :profile_module) do
       nil -> nil
       module -> module.load_profile(user)
+    end
+  end
+
+  defp load_admin(user) do
+    module = Application.get_env(:sgiath_auth, :profile_module)
+
+    if not is_nil(module) and Code.ensure_loaded?(module) and
+         function_exported?(module, :load_admin, 1) do
+      module.load_admin(user)
+    else
+      nil
     end
   end
 end
