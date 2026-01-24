@@ -30,9 +30,6 @@ config :sgiath_auth,
 
 ```elixir
 config :sgiath_auth,
-  # organization to add all new users to, useful when running multiple apps under
-  # one WorkOS account and separating users by organizations
-  organization_id: "org_...",
   # Path to redirect unauthenticated users (default: "/sign-in")
   sign_in_path: "/login",
   # Path to redirect after sign-in/sign-out (default: "/")

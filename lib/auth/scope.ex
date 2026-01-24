@@ -4,7 +4,7 @@ defmodule SgiathAuth.Scope do
   require Logger
 
   @derive JSON.Encoder
-  defstruct user: nil, profile: nil, admin: nil, role: nil
+  defstruct user: nil, org: nil, profile: nil, admin: nil, role: nil
 
   def for_user(user, role \\ "member")
 
@@ -14,7 +14,7 @@ defmodule SgiathAuth.Scope do
     %__MODULE__{user: user, profile: profile, role: role, admin: admin}
   end
 
-  def for_user(nil, _role, _admin), do: nil
+  def for_user(nil, _role), do: nil
 
   defp load_profile(user) do
     case Application.get_env(:sgiath_auth, :profile_module) do

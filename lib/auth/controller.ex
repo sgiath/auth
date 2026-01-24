@@ -80,10 +80,14 @@ defmodule SgiathAuth.Controller do
     callback(conn, %{"code" => code, "state" => Base.encode64(SgiathAuth.WorkOS.default_path())})
   end
 
-  defp authenticate(conn, %{"access_token" => access_token, "refresh_token" => refresh_token}) do
+  defp authenticate(
+         conn,
+         %{"access_token" => access_token, "refresh_token" => refresh_token} = params
+       ) do
     conn
     |> put_session(:access_token, access_token)
     |> put_session(:refresh_token, refresh_token)
+    |> put_session(:org_id, params["organization_id"])
   end
 
   # Safely decode and validate the return path to prevent open redirect attacks

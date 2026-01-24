@@ -11,6 +11,10 @@ defmodule SgiathAuth do
            {:session, get_session(conn)},
          {:scope, {:ok, scope, session_id}} <-
            {:scope, build_scope_from_token(access_token)} do
+      org_id = get_session(conn, :org_id)
+      {conn, org} = ensure_organization(conn, org_id, scope.user)
+      scope = %{scope | org: org}
+
       set_context(%{
         user_id: scope.user["id"],
         profile_id: get_in(scope.profile.id),
@@ -20,6 +24,7 @@ defmodule SgiathAuth do
       conn
       |> put_session(:access_token, access_token)
       |> put_session(:refresh_token, refresh_token)
+      |> put_session(:org_id, org_id)
       |> put_session(:live_socket_id, session_id)
       |> assign(:current_scope, scope)
     else
@@ -70,11 +75,42 @@ defmodule SgiathAuth do
   end
 
   defp build_scope_from_token(access_token) do
-    with {:ok, %{"sub" => user_id, "role" => role, "sid" => session_id} = token} <-
+    with {:ok, %{"sub" => user_id, "role" => role, "sid" => session_id}} <-
            SgiathAuth.Token.verify_and_validate(access_token),
          {:ok, user} <- SgiathAuth.WorkOS.get_user(user_id) do
-      impersonator = get_in(token, ["act", "sub"])
-      {:ok, SgiathAuth.Scope.for_user(user, role, impersonator), session_id}
+      {:ok, SgiathAuth.Scope.for_user(user, role), session_id}
+    end
+  end
+
+  defp ensure_organization(conn, org_id, user) when is_binary(org_id) do
+    case SgiathAuth.WorkOS.Organization.get(org_id) do
+      {:ok, org} -> {conn, org}
+      {:error, _} -> maybe_create_organization(conn, user)
+    end
+  end
+
+  defp ensure_organization(conn, _org_id, user) do
+    maybe_create_organization(conn, user)
+  end
+
+  defp maybe_create_organization(conn, user) do
+    if Application.get_env(:sgiath_auth, :auto_create_organization, false) do
+      create_organization_for_user(conn, user)
+    else
+      {conn, nil}
+    end
+  end
+
+  defp create_organization_for_user(conn, user) do
+    name = "#{user["first_name"]} #{user["last_name"]}"
+
+    case SgiathAuth.WorkOS.Organization.create(name) do
+      {:ok, org} ->
+        SgiathAuth.WorkOS.OrganizationMembership.create(org["id"], user["id"])
+        {put_session(conn, :org_id, org["id"]), org}
+
+      {:error, _} ->
+        {conn, nil}
     end
   end
 
@@ -118,7 +154,8 @@ defmodule SgiathAuth do
           case build_scope_from_token(access_token) do
             {:ok, scope, session_id} ->
               Logger.metadata(session_id: session_id)
-              scope
+              org = load_organization(session["org_id"])
+              %{scope | org: org}
 
             {:error, _reason} ->
               # Token invalid - will be handled by require_authenticated if needed
@@ -129,6 +166,15 @@ defmodule SgiathAuth do
           nil
       end
     end)
+  end
+
+  defp load_organization(nil), do: nil
+
+  defp load_organization(org_id) do
+    case SgiathAuth.WorkOS.Organization.get(org_id) do
+      {:ok, org} -> org
+      {:error, _} -> nil
+    end
   end
 
   def require_authenticated_user(conn, _opts) do
