@@ -25,7 +25,7 @@ defmodule SgiathAuth.WorkOS.OrganizationMembership do
   """
   def list(opts \\ []) do
     Client.new()
-    |> Req.get(url: "/user_management/organization_memberships", query: opts)
+    |> Req.get(url: "/user_management/organization_memberships", params: opts)
     |> Client.handle_response()
   end
 

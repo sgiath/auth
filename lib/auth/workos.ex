@@ -79,17 +79,26 @@ defmodule SgiathAuth.WorkOS do
   Refreshes an expired access token using a refresh token.
 
   Returns new access and refresh tokens on success.
+
+  ## Params
+
+    * `:organization_id` - switch to different organization
+
   """
-  def authenticate_with_refresh_token(_conn, refresh_token) do
+  def authenticate_with_refresh_token(_conn, refresh_token, params \\ %{}) do
     Client.new()
     |> Req.post(
       url: "/user_management/authenticate",
-      json: %{
-        client_id: Client.client_id(),
-        client_secret: Client.client_secret(),
-        grant_type: "refresh_token",
-        refresh_token: refresh_token
-      }
+      json:
+        Map.merge(
+          %{
+            client_id: Client.client_id(),
+            client_secret: Client.client_secret(),
+            grant_type: "refresh_token",
+            refresh_token: refresh_token
+          },
+          params
+        )
     )
     |> Client.handle_response()
   end

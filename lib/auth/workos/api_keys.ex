@@ -22,7 +22,7 @@ defmodule SgiathAuth.WorkOS.ApiKeys do
   """
   def list("org_" <> org_id, opts \\ []) do
     Client.new()
-    |> Req.get(url: "/organizations/org_#{org_id}/api_keys", query: opts)
+    |> Req.get(url: "/organizations/org_#{org_id}/api_keys", params: opts)
     |> Client.handle_response()
   end
 

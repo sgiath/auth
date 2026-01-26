@@ -40,7 +40,7 @@ defmodule SgiathAuth.WorkOS.User do
   """
   def list(params \\ []) do
     Client.new()
-    |> Req.get(url: "/user_management/users", query: params)
+    |> Req.get(url: "/user_management/users", params: params)
     |> Client.handle_response()
   end
 
