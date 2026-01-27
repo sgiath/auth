@@ -26,12 +26,23 @@ defmodule SgiathAuth.RefreshTest do
     :ok
   end
 
-  test "GET refresh is rejected" do
-    conn = conn("GET", "/auth/refresh") |> init_test_session(%{})
+  test "GET refresh is accepted" do
+    Req.Test.stub(@workos_stub, fn conn ->
+      Req.Test.json(conn, %{
+        "access_token" => "access_new",
+        "refresh_token" => "refresh_new"
+      })
+    end)
+
+    conn =
+      conn("GET", "/auth/refresh")
+      |> init_test_session(%{refresh_token: "refresh_old"})
+
     conn = SgiathAuth.Controller.refresh(conn, %{})
 
-    assert conn.status == 405
-    assert conn.resp_body == "Method Not Allowed"
+    assert get_session(conn, :access_token) == "access_new"
+    assert get_session(conn, :refresh_token) == "refresh_new"
+    assert conn.status == 302
   end
 
   test "refresh_session forwards organization_id and updates session" do

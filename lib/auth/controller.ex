@@ -40,19 +40,13 @@ defmodule SgiathAuth.Controller do
     end
   end
 
-  def refresh(%{method: "POST"} = conn, params) do
+  def refresh(conn, params) do
     return_to = Map.get(params, "return_to", SgiathAuth.WorkOS.default_path())
     validated_return_to = validate_relative_path(return_to, SgiathAuth.WorkOS.default_path())
 
     conn
     |> SgiathAuth.refresh_session(params)
     |> redirect(to: validated_return_to)
-  end
-
-  def refresh(conn, _params) do
-    conn
-    |> send_resp(405, "Method Not Allowed")
-    |> halt()
   end
 
   def sign_up(conn, _params) do

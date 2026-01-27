@@ -26,7 +26,7 @@ config :sgiath_auth,
 ```elixir
 config :sgiath_auth,
   sign_in_path: "/auth/sign-in",   # default: "/sign-in"
-  refresh_path: "/auth/refresh",   # default: "/auth/refresh" (POST-only)
+  refresh_path: "/auth/refresh",   # default: "/auth/refresh"
   default_path: "/",               # default: "/"
   logout_return_to: "/",            # default: "/"
   profile_module: MyApp.Profile,    # default: nil
@@ -57,6 +57,7 @@ scope "/auth", SgiathAuth do
   get "/sign-up", Controller, :sign_up
   get "/sign-out", Controller, :sign_out
   get "/callback", Controller, :callback
+  get "/refresh", Controller, :refresh
   post "/refresh", Controller, :refresh
 end
 ```
@@ -70,9 +71,9 @@ end
   - `on_mount {SgiathAuth, :require_authenticated}` guards and redirects.
   - `on_mount {SgiathAuth, :test_authenticated}` exists only in `Mix.env() == :test`.
 
-## Refresh endpoint (POST-only)
+## Refresh endpoint (GET/POST)
 
-- `POST /auth/refresh` refreshes the session and redirects to `return_to`.
+- `GET /auth/refresh` or `POST /auth/refresh` refreshes the session and redirects to `return_to`.
 - Optional param: `organization_id` switches org context during refresh.
 - Always send a relative `return_to` to preserve the current page.
 

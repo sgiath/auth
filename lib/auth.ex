@@ -149,12 +149,13 @@ defmodule SgiathAuth do
       socket.assigns.current_scope && socket.assigns.current_scope.user ->
         {:cont, socket}
 
-      # Has token but scope building failed - require re-auth
       session["access_token"] ->
-        {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
+        # continue without current_scope, the refresh will be called from the LiveView directly
+        {:cont, socket}
 
       # No token at all - redirect to sign in
-      true ->
+      :otherwise ->
+        Logger.warning("no access token")
         {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
     end
   end

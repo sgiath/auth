@@ -1,15 +1,15 @@
 ## Purpose
 
-Define how authenticated sessions refresh tokens and switch organization context through a POST-only refresh flow.
+Define how authenticated sessions refresh tokens and switch organization context through a refresh flow.
 
 ## Requirements
 
-### Requirement: Refresh is POST-only
-The system SHALL perform refresh operations only on POST requests to the refresh endpoint.
+### Requirement: Refresh accepts GET and POST
+The system SHALL perform refresh operations on GET or POST requests to the refresh endpoint.
 
-#### Scenario: GET refresh is rejected
+#### Scenario: GET refresh is accepted
 - **WHEN** a client sends a GET request to the refresh endpoint
-- **THEN** no session refresh occurs and the request is rejected
+- **THEN** the session refresh occurs and the request completes
 
 ### Requirement: Accept organization_id on refresh
 The system SHALL accept an optional organization_id on POST refresh requests and SHALL include it in the token refresh request.

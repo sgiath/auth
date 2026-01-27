@@ -40,6 +40,7 @@ scope "/auth", SgiathAuth do
   get "/sign-up", Controller, :sign_up
   get "/sign-out", Controller, :sign_out
   get "/callback", Controller, :callback
+  get "/refresh", Controller, :refresh
   post "/refresh", Controller, :refresh
 end
 
@@ -67,9 +68,9 @@ def live_view do
 end
 ```
 
-## Refreshing sessions (POST)
+## Refreshing sessions (GET/POST)
 
-The refresh endpoint is POST-only and accepts optional `organization_id` for org switching.
+The refresh endpoint accepts GET or POST and supports optional `organization_id` for org switching.
 Use `return_to` to send users back to their current page after refresh.
 
 ```elixir
@@ -82,7 +83,7 @@ Use `return_to` to send users back to their current page after refresh.
 </form>
 ```
 
-For LiveView, trigger a full HTTP POST via a client hook:
+For LiveView, trigger a full HTTP POST via a client hook (recommended):
 
 ```javascript
 // assets/js/app.js
