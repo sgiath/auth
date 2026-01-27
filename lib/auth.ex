@@ -51,17 +51,23 @@ defmodule SgiathAuth do
   @doc """
   Refreshes the session tokens using the refresh token stored in the session.
   Returns the conn with updated tokens on success, or clears the session on failure.
-  """
-  def refresh_session(conn) do
-    refresh_token = get_session(conn, :refresh_token)
 
-    case SgiathAuth.WorkOS.authenticate_with_refresh_token(conn, refresh_token) do
+  Optional params:
+
+  - `organization_id` - switch organization context during refresh
+  """
+  def refresh_session(conn, params \\ %{}) do
+    refresh_token = get_session(conn, :refresh_token)
+    refresh_params = refresh_params(params)
+
+    case SgiathAuth.WorkOS.authenticate_with_refresh_token(conn, refresh_token, refresh_params) do
       {:ok, response} ->
         Logger.debug("[auth] refreshed session successfully")
 
         conn
         |> put_session(:access_token, response["access_token"])
         |> put_session(:refresh_token, response["refresh_token"])
+        |> maybe_put_org_id(response)
 
       {:error, reason} ->
         Logger.debug("[auth] failed to refresh session, reason: #{inspect(reason)}")
@@ -79,6 +85,24 @@ defmodule SgiathAuth do
            SgiathAuth.Token.verify_and_validate(access_token),
          {:ok, user} <- SgiathAuth.WorkOS.get_user(user_id) do
       {:ok, SgiathAuth.Scope.for_user(user, role), session_id}
+    end
+  end
+
+  defp refresh_params(params) do
+    params = params || %{}
+    org_id = Map.get(params, "organization_id") || Map.get(params, :organization_id)
+
+    if is_binary(org_id) and org_id != "" do
+      %{"organization_id" => org_id}
+    else
+      %{}
+    end
+  end
+
+  defp maybe_put_org_id(conn, response) do
+    case Map.fetch(response, "organization_id") do
+      {:ok, org_id} -> put_session(conn, :org_id, org_id)
+      :error -> conn
     end
   end
 
@@ -125,9 +149,9 @@ defmodule SgiathAuth do
       socket.assigns.current_scope && socket.assigns.current_scope.user ->
         {:cont, socket}
 
-      # Has token but scope building failed - try to refresh
+      # Has token but scope building failed - require re-auth
       session["access_token"] ->
-        {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.refresh_path())}
+        {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
 
       # No token at all - redirect to sign in
       true ->

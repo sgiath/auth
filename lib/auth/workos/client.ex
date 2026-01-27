@@ -6,10 +6,10 @@ defmodule SgiathAuth.WorkOS.Client do
   @api_base_url "https://api.workos.com"
 
   def new do
-    Req.new(
-      base_url: base_url(),
-      auth: {:bearer, client_secret()}
-    )
+    defaults = [base_url: base_url(), auth: {:bearer, client_secret()}]
+    extra = Application.get_env(:sgiath_auth, :workos_req_options, [])
+
+    Req.new(Keyword.merge(defaults, extra))
   end
 
   def base_url, do: @api_base_url

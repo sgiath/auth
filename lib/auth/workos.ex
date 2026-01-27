@@ -128,7 +128,7 @@ defmodule SgiathAuth.WorkOS do
   end
 
   @doc """
-  Returns the configured token refresh path. Defaults to `"/auth/refresh"`.
+  Returns the configured token refresh path (POST-only). Defaults to `"/auth/refresh"`.
   """
   def refresh_path do
     Application.get_env(:sgiath_auth, :refresh_path, "/auth/refresh")

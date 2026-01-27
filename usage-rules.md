@@ -26,14 +26,14 @@ config :sgiath_auth,
 ```elixir
 config :sgiath_auth,
   sign_in_path: "/auth/sign-in",   # default: "/sign-in"
-  refresh_path: "/auth/refresh",   # default: "/auth/refresh"
+  refresh_path: "/auth/refresh",   # default: "/auth/refresh" (POST-only)
   default_path: "/",               # default: "/"
   logout_return_to: "/",            # default: "/"
   profile_module: MyApp.Profile,    # default: nil
   auto_create_organization: false   # default: false
 ```
 
-If you scope auth routes under `/auth`, set `sign_in_path` to `/auth/sign-in`. The LiveView hook uses `sign_in_path`/`refresh_path` directly, so mismatched paths cause redirects to non-existent routes.
+If you scope auth routes under `/auth`, set `sign_in_path` to `/auth/sign-in`. The LiveView hook uses `sign_in_path` directly, so mismatched paths cause redirects to non-existent routes.
 
 ## Supervision
 
@@ -57,7 +57,7 @@ scope "/auth", SgiathAuth do
   get "/sign-up", Controller, :sign_up
   get "/sign-out", Controller, :sign_out
   get "/callback", Controller, :callback
-  get "/refresh", Controller, :refresh
+  post "/refresh", Controller, :refresh
 end
 ```
 
@@ -69,6 +69,51 @@ end
   - `on_mount {SgiathAuth, :mount_current_scope}` loads `current_scope` if tokens exist.
   - `on_mount {SgiathAuth, :require_authenticated}` guards and redirects.
   - `on_mount {SgiathAuth, :test_authenticated}` exists only in `Mix.env() == :test`.
+
+## Refresh endpoint (POST-only)
+
+- `POST /auth/refresh` refreshes the session and redirects to `return_to`.
+- Optional param: `organization_id` switches org context during refresh.
+- Always send a relative `return_to` to preserve the current page.
+
+LiveView needs a full HTTP POST to refresh cookies; use a client hook that submits a POST form.
+
+Example params:
+
+```
+return_to=/settings
+organization_id=org_123
+```
+
+Example LiveView hook flow:
+
+```javascript
+Hooks.AuthRefresh = {
+  mounted() {
+    this.handleEvent("auth:refresh", ({return_to, organization_id}) => {
+      const form = document.createElement("form")
+      form.method = "post"
+      form.action = "/auth/refresh"
+      form.appendChild(this.input("_csrf_token", this.csrfToken()))
+      form.appendChild(this.input("return_to", return_to))
+      if (organization_id) form.appendChild(this.input("organization_id", organization_id))
+      document.body.appendChild(form)
+      form.submit()
+    })
+  },
+  input(name, value) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = name
+    input.value = value
+    return input
+  },
+  csrfToken() {
+    const meta = document.querySelector("meta[name='csrf-token']")
+    return meta ? meta.getAttribute("content") : ""
+  }
+}
+```
 
 ## Flow details (what actually happens)
 
@@ -86,7 +131,7 @@ end
 4. If token verification fails, it refreshes once with `refresh_token`. On refresh failure it clears the session.
 5. LiveView `:require_authenticated`:
    - If scope present, continues.
-   - If access token exists but invalid, redirects to `refresh_path`.
+   - If access token exists but invalid, redirects to `sign_in_path`.
    - If no token, redirects to `sign_in_path`.
 
 ## Session keys used
