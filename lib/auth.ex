@@ -142,7 +142,7 @@ defmodule SgiathAuth do
     {:cont, mount_current_scope(socket, session)}
   end
 
-  def on_mount(:require_authenticated, _params, session, socket) do
+  def on_mount(:require_authenticated, params, session, socket) do
     socket = mount_current_scope(socket, session)
 
     cond do
@@ -150,8 +150,12 @@ defmodule SgiathAuth do
         {:cont, socket}
 
       session["access_token"] ->
-        # continue without current_scope, the refresh will be called from the LiveView directly
-        {:cont, socket}
+        if function_exported?(socket.view, :return_to, 1) do
+          return_to = socket.view.return_to(params)
+          {:halt, Phoenix.LiveView.redirect(socket, to: "/auth/refresh?return_to=#{return_to}")}
+        else
+          {:halt, Phoenix.LiveView.redirect(socket, to: "/auth/refresh?return_to=/")}
+        end
 
       # No token at all - redirect to sign in
       :otherwise ->
