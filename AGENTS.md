@@ -23,6 +23,8 @@ mix deps.get          # Install dependencies
 - **`SgiathAuth.Token`** - JWT configuration and validation using Joken
 - **`SgiathAuth.Token.Strategy`** - JWKS token strategy for WorkOS token validation
 - **`SgiathAuth.WorkOS`** - HTTP client for WorkOS API communication
+- **`SgiathAuth.WorkOS.OrganizationMembership`** - Org membership CRUD: `list`, `create`, `get`, `update`, `delete`, `deactivate`, `reactivate`
+- **`SgiathAuth.WorkOS.Invitation`** - Invitation management: `list`, `get`, `get_by_token`, `send`, `resend`, `revoke`
 - **`SgiathAuth.Controller`** - Phoenix controller with sign-in/sign-up/callback/sign-out endpoints
 
 ### Authentication Flow

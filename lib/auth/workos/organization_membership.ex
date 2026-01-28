@@ -53,4 +53,75 @@ defmodule SgiathAuth.WorkOS.OrganizationMembership do
     |> Req.post(url: "/user_management/organization_memberships", json: body)
     |> Client.handle_response()
   end
+
+  @doc """
+  Updates an organization membership.
+
+  ## Parameters
+
+    * `membership_id` - The organization membership ID (e.g. "om_...")
+
+  ## Options
+
+    * `:role_slug` - New role to assign (string)
+
+  """
+  def update("om_" <> membership_id, opts \\ %{}) do
+    Client.new()
+    |> Req.put(url: "/user_management/organization_memberships/om_#{membership_id}", json: opts)
+    |> Client.handle_response()
+  end
+
+  @doc """
+  Gets an organization membership by ID.
+  """
+  def get("om_" <> membership_id) do
+    Client.new()
+    |> Req.get(url: "/user_management/organization_memberships/om_#{membership_id}")
+    |> Client.handle_response()
+  end
+
+  @doc """
+  Deletes an organization membership.
+
+  ## Parameters
+
+    * `membership_id` - The organization membership ID (e.g. "om_...")
+
+  """
+  def delete("om_" <> membership_id) do
+    Client.new()
+    |> Req.delete(url: "/user_management/organization_memberships/om_#{membership_id}")
+    |> Client.handle_response()
+  end
+
+  @doc """
+  Deactivates an organization membership.
+
+  The user will no longer be able to access the organization but the membership record is preserved.
+
+  ## Parameters
+
+    * `membership_id` - The organization membership ID (e.g. "om_...")
+
+  """
+  def deactivate("om_" <> membership_id) do
+    Client.new()
+    |> Req.put(url: "/user_management/organization_memberships/om_#{membership_id}/deactivate")
+    |> Client.handle_response()
+  end
+
+  @doc """
+  Reactivates a previously deactivated organization membership.
+
+  ## Parameters
+
+    * `membership_id` - The organization membership ID (e.g. "om_...")
+
+  """
+  def reactivate("om_" <> membership_id) do
+    Client.new()
+    |> Req.put(url: "/user_management/organization_memberships/om_#{membership_id}/reactivate")
+    |> Client.handle_response()
+  end
 end
