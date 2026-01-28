@@ -118,14 +118,24 @@ defmodule SgiathAuth do
   @no_org_redirect Application.compile_env!(:sgiath_auth, :no_organization_redirect)
 
   def require_organization(conn, _opts) do
-    if conn.assigns.current_scope && conn.assigns.current_scope.org do
-      conn
-    else
-      return_to = current_path(conn)
+    scope = conn.assigns[:current_scope]
 
-      conn
-      |> redirect(to: "#{@no_org_redirect}?return_to=#{return_to}")
-      |> halt()
+    cond do
+      is_nil(scope) ->
+        conn
+        |> maybe_store_return_to()
+        |> redirect(to: SgiathAuth.WorkOS.sign_in_path())
+        |> halt()
+
+      is_nil(scope.org) ->
+        return_to = current_path(conn)
+
+        conn
+        |> redirect(to: "#{@no_org_redirect}?return_to=#{return_to}")
+        |> halt()
+
+      :logged_in_with_org ->
+        conn
     end
   end
 
@@ -135,30 +145,37 @@ defmodule SgiathAuth do
 
   def on_mount(:require_authenticated, params, session, socket) do
     socket = mount_current_scope(socket, session)
+    scope = socket.assigns[:current_scope]
 
     cond do
-      socket.assigns.current_scope && socket.assigns.current_scope.user ->
-        {:cont, socket}
+      is_nil(scope) and is_nil(session["access_token"]) ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
 
-      session["access_token"] ->
+      is_nil(scope) ->
         return_to = get_return_to(socket, params)
         {:halt, Phoenix.LiveView.redirect(socket, to: "/auth/refresh?return_to=#{return_to}")}
 
-      # No token at all - redirect to sign in
-      :otherwise ->
-        Logger.warning("no access token")
-        {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
+      :user_have_scope ->
+        {:cont, socket}
     end
   end
 
-  def on_mount(:require_organization, params, _session, socket) do
+  def on_mount(:require_organization, params, session, socket) do
+    socket = mount_current_scope(socket, session)
     scope = socket.assigns[:current_scope]
 
-    if scope && scope.org do
-      {:cont, socket}
-    else
-      return_to = get_return_to(socket, params)
-      {:halt, Phoenix.LiveView.redirect(socket, to: "#{@no_org_redirect}?return_to=#{return_to}")}
+    cond do
+      is_nil(scope) ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
+
+      is_nil(scope.org) ->
+        return_to = get_return_to(socket, params)
+
+        {:halt,
+         Phoenix.LiveView.redirect(socket, to: "#{@no_org_redirect}?return_to=#{return_to}")}
+
+      :logged_in_with_org ->
+        {:cont, socket}
     end
   end
 
