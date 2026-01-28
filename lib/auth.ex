@@ -165,8 +165,12 @@ defmodule SgiathAuth do
     scope = socket.assigns[:current_scope]
 
     cond do
-      is_nil(scope) ->
+      is_nil(scope) and is_nil(session["access_token"]) ->
         {:halt, Phoenix.LiveView.redirect(socket, to: SgiathAuth.WorkOS.sign_in_path())}
+
+      is_nil(scope) ->
+        return_to = get_return_to(socket, params)
+        {:halt, Phoenix.LiveView.redirect(socket, to: "/auth/refresh?return_to=#{return_to}")}
 
       is_nil(scope.org) ->
         return_to = get_return_to(socket, params)
